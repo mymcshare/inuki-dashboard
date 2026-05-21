@@ -207,6 +207,7 @@ def update_html(data: list[dict], today: str):
     json_str = json.dumps(data, ensure_ascii=False, indent=2)
     html = re.sub(r'const DATA = \[[\s\S]*?\];', f'const DATA = {json_str};', html)
     html = re.sub(r'const CRAWL_DATE = "[^"]*";', f'const CRAWL_DATE = "{today}";', html)
+    html = re.sub(r'<span id="gen">[^<]*</span>', f'<span id="gen">{today}</span>', html)
     HTML_PATH.write_text(html, encoding="utf-8")
     print(f"✓ index.html 更新完了（{len(data)} 件, 取得日: {today}）")
 
