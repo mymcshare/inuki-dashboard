@@ -1618,10 +1618,7 @@ async function triggerUpdate(){
   btn.disabled=true;
   btn.textContent="送信中...";
   try{
-    const res=await fetch(
-      "https://api.github.com/repos/mymcshare/inuki-dashboard/actions/workflows/daily-update.yml/dispatches",
-      {method:"POST",headers:{"Authorization":"Bearer "+atob("Z2l0aHViX3BhdF8xMUNEWUlRWlEwTjc0ckhLbEl6N3R0X056UVM3cktNR0x5dVBib012TGNDVWp4ZUFUTEdsdUYyRmNEdm5zNkVpS2RVTkFISzdOVWRGb05yUVdW"),"Accept":"application/vnd.github+Json","X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},body:JSON.stringify({ref:"master"})}
-    );
+    const res=await fetch("https://snowy-field-a3c9.ict-share.workers.dev",{method:"POST"});
     if(res.status===204){
       let n=90;
       btn.textContent=`更新中... ${n}秒後にリロード`;
