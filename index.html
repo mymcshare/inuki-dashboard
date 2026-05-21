@@ -15,9 +15,6 @@
   body{margin:0;background:var(--bg);color:var(--txt);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;font-size:14px;line-height:1.5}
   header{padding:20px 24px;background:linear-gradient(180deg,#1b1f29,#13161d);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px}
   .header-left{flex:1}
-  #refreshBtn{flex-shrink:0;background:var(--accent);color:#1a1206;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s}
-  #refreshBtn:hover:not(:disabled){background:var(--accent2)}
-  #refreshBtn:disabled{background:#555;color:#999;cursor:not-allowed}
   h1{margin:0 0 4px;font-size:20px;letter-spacing:.02em}
   h1 .ramen{color:var(--accent)}
   .sub{color:var(--muted);font-size:12.5px}
@@ -76,7 +73,6 @@
     <h1>居抜き物件ダッシュボード <span class="ramen">🍜 ラーメン出店候補</span></h1>
     <div class="sub">対象エリア：1都3県（東京・神奈川・千葉・埼玉）</div>
   </div>
-  <button id="refreshBtn" onclick="triggerUpdate()">↻ データ更新</button>
 </header>
 
 <div class="wrap">
@@ -1608,7 +1604,6 @@ function renderStats(){
     <div class="stat" style="min-width:150px">
       <div class="n" style="font-size:13px;line-height:1.9">${CRAWL_DATE.replace(" ","<br>")}</div>
       <div class="l">データ更新日時</div>
-      <div id="updateResult" style="font-size:11px;margin-top:4px;font-weight:700"></div>
     </div>
   `;
 }
@@ -1679,53 +1674,7 @@ document.querySelectorAll("th.sortable").forEach(th=>{
 
 renderPrefs();
 renderStats();
-checkUpdateResult();
 render();
-
-function checkUpdateResult(){
-  const prev=localStorage.getItem("inuki_prev_date");
-  const at=localStorage.getItem("inuki_trigger_at");
-  if(!prev||!at) return;
-  localStorage.removeItem("inuki_prev_date");
-  localStorage.removeItem("inuki_trigger_at");
-  if(Date.now()-parseInt(at)>5*60*1000) return;
-  const el=document.getElementById("updateResult");
-  if(!el) return;
-  const t=new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
-  if(CRAWL_DATE!==prev){
-    el.textContent=`✓ 成功  ${t}`;
-    el.style.color="var(--good)";
-  } else {
-    el.textContent=`✗ 失敗  ${t}`;
-    el.style.color="#e74c3c";
-  }
-}
-
-async function triggerUpdate(){
-  const btn=document.getElementById("refreshBtn");
-  btn.disabled=true;
-  btn.textContent="送信中...";
-  try{
-    const res=await fetch("https://snowy-field-a3c9.ict-share.workers.dev",{method:"POST"});
-    if(res.ok){
-      localStorage.setItem("inuki_prev_date",CRAWL_DATE);
-      localStorage.setItem("inuki_trigger_at",Date.now());
-      let n=90;
-      btn.textContent=`更新中... ${n}秒後にリロード`;
-      const t=setInterval(()=>{
-        n--;
-        btn.textContent=`更新中... ${n}秒後にリロード`;
-        if(n<=0){clearInterval(t);location.reload();}
-      },1000);
-    } else {
-      btn.textContent="エラー（再試行）";
-      btn.disabled=false;
-    }
-  } catch(e){
-    btn.textContent="エラー（再試行）";
-    btn.disabled=false;
-  }
-}
 </script>
 </body>
 </html>
