@@ -1700,7 +1700,7 @@ function render(){
 }
 
 // events
-document.getElementById("gen").textContent=CRAWL_DATE;
+const _genEl=document.getElementById("gen"); if(_genEl)_genEl.textContent=CRAWL_DATE;
 document.getElementById("rentMax").onchange=e=>{state.rentMax=e.target.value;render();};
 document.getElementById("tsuboMin").onchange=e=>{state.tsuboMin=e.target.value;render();};
 document.getElementById("tsuboMax").onchange=e=>{state.tsuboMax=e.target.value;render();};
