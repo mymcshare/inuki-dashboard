@@ -1,0 +1,42 @@
+name: 居抜き物件データ毎日更新
+
+on:
+  schedule:
+    # 毎日 23:50 JST = 14:50 UTC
+    - cron: '50 14 * * *'
+  workflow_dispatch:   # GitHub画面から手動実行も可能
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python 3.12 セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: 依存パッケージをインストール
+        run: pip install -r scraper/requirements.txt
+
+      - name: スクレイパーを実行
+        run: python scraper/scrape.py
+
+      - name: 変更があればコミット＆プッシュ
+        run: |
+          git config user.name  "inuki-bot"
+          git config user.email "inuki-bot@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "変更なし。スキップします。"
+          else
+            git commit -m "data: 物件データ自動更新 $(date +'%Y-%m-%d')"
+            git push
+          fi
