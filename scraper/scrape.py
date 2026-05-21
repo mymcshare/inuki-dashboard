@@ -92,35 +92,40 @@ def fetch(url: str) -> BeautifulSoup:
     return BeautifulSoup(r.text, "lxml")
 
 def parse_card(card) -> dict | None:
-    """物件カード（<li>または<div>）からデータ抽出"""
-    # ── URL / ID ──────────────────
-    a_tag = card.find("a", href=re.compile(r'/bukken/'))
-    if not a_tag:
-        return None
-    url = a_tag["href"]
+    """物件カード（<a href="/bukken/bukkens/{id}"> タグ自体）からデータ抽出"""
+    # card IS the <a> tag
+    url = card.get("href", "")
     if not url.startswith("http"):
         url = "https://www.inshokuten.com" + url
     id_m = re.search(r'/(\d+)/?$', url)
     item_id = id_m.group(1) if id_m else ""
+    if not item_id:
+        return None
 
     full_text = card.get_text(" ", strip=True)
+    if not full_text.strip():
+        return None
 
     # ── 都県 ──────────────────────
     pref = detect_pref(full_text)
 
     # ── 住所（都県名以降）──────────
-    addr_m = re.search(r'(?:東京都?|神奈川県?|千葉県?|埼玉県?)([\w\s\d\-－区市町村丁目番地]+)', full_text)
+    addr_m = re.search(r'(?:東京都?|神奈川県?|千葉県?|埼玉県?)([\w\d区市町村丁目番地\-－]+)', full_text)
     city = addr_m.group(1).strip()[:30] if addr_m else ""
 
     # ── 最寄り駅 ──────────────────
-    stn_m = re.search(r'([^\s　]+(?:線|電鉄|鉄道)[^\s　]*\s+[^\s　]+駅?\s*徒歩\s*\d+\s*分)', full_text)
+    # "東京メトロ丸ノ内線 新宿三丁目 徒歩 5分" の形式（徒歩とN分の間にスペースあり）
+    stn_m = re.search(
+        r'([^\s　]+(?:線|電鉄|鉄道|メトロ)[^\s　]*\s+[^\s　]+(?:駅)?\s+徒歩\s*\d+\s*分)',
+        full_text
+    )
     if not stn_m:
-        stn_m = re.search(r'([^\s　]+駅?\s+徒歩\s*\d+\s*分)', full_text)
+        stn_m = re.search(r'([^\s　]+(?:駅)?\s+徒歩\s*\d+\s*分)', full_text)
     station = stn_m.group(1).strip() if stn_m else ""
     walk    = parse_walk(station)
 
     # ── 賃料 ──────────────────────
-    rent_m = re.search(r'([\d,]+(?:\.\d+)?\s*万円|要相談|相談|価格相談)', full_text)
+    rent_m = re.search(r'([\d,]+(?:\.\d+)?\s*万円)', full_text)
     rent_raw = rent_m.group(1).strip() if rent_m else "相談"
     rent_man = parse_rent(rent_raw)
 
@@ -136,15 +141,15 @@ def parse_card(card) -> dict | None:
     prev_tenant = prev_m.group(1) if prev_m else ""
 
     # ── 重飲食可 ──────────────────
-    juu = bool(re.search(r'重飲食可|重飲食[\s　]*可|ラーメン可|焼肉可', full_text))
+    # 出店可能業態タグに "重飲食" が含まれていれば True
+    juu = "重飲食" in full_text
 
     # ── 登録日 ────────────────────
     reg_date = parse_date(full_text)
 
-    # ── コメント（タイトル/説明文）─
-    title_el = card.find(re.compile(r'^h[1-6]$')) or \
-               card.find(class_=re.compile(r'title|name|ttl', re.I))
-    comment = title_el.get_text(strip=True)[:60] if title_el else full_text[:60]
+    # ── コメント ──────────────────
+    comment_m = re.search(r'(.+?の(?:貸店舗|居抜き物件|店舗物件|貸店舗・事務所))', full_text)
+    comment = comment_m.group(1)[:60] if comment_m else full_text[:60]
 
     return {
         "id":         item_id,
@@ -167,33 +172,27 @@ def scrape_page(url: str) -> list[dict]:
     print(f"  取得: {url}")
     soup = fetch(url)
 
-    # 物件カードのセレクタ（複数候補を試す）
-    candidates = [
-        soup.select("ul.bukken-list > li"),
-        soup.select(".bukken-item"),
-        soup.select(".property-list li"),
-        soup.select(".result-list li"),
-        soup.select("li.item"),
-        # フォールバック：inshokuten.com 固有クラス
-        soup.select("[class*='bukken']"),
-    ]
-    cards = next((c for c in candidates if c), [])
+    # 物件カード = /bukken/bukkens/{id} へのリンクを持つ <a> タグ自体がカード
+    cards = soup.find_all("a", href=re.compile(r'/bukken/bukkens/\d+'))
+    print(f"  リンク検出: {len(cards)} 件")
 
     if not cards:
-        print("  ⚠ 物件カードが見つかりません。URLまたはセレクタを確認してください。")
-        # デバッグ用：ページタイトルを出力
+        print("  ⚠ 物件リンクが見つかりません。URLを確認してください。")
         title = soup.find("title")
         print(f"  ページタイトル: {title.text if title else '不明'}")
         return []
 
     results = []
+    seen_ids: set[str] = set()
     for card in cards:
         try:
             item = parse_card(card)
-            if item and item["id"]:
+            if item and item["id"] and item["id"] not in seen_ids:
+                seen_ids.add(item["id"])
                 results.append(item)
         except Exception as e:
             print(f"  カード解析エラー: {e}")
+    print(f"  → {len(results)} 件取得（重複除外後）")
     return results
 
 # ── HTML更新 ──────────────────────────────────────────
