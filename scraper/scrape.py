@@ -11,7 +11,7 @@ import time
 import sys
 import requests
 from bs4 import BeautifulSoup
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 
 # ── 設定 ────────────────────────────────────────────
@@ -145,7 +145,7 @@ def parse_card(card) -> dict | None:
     juu = "重飲食" in full_text
 
     # ── 登録日 ────────────────────
-    reg_date = parse_date(full_text)
+    reg_date = parse_date(full_text) or str(date.today())
 
     # ── コメント ──────────────────
     comment_m = re.search(r'(.+?の(?:貸店舗|居抜き物件|店舗物件|貸店舗・事務所))', full_text)
@@ -214,7 +214,8 @@ def update_html(data: list[dict], today: str):
 # ── メイン ────────────────────────────────────────────
 
 def main():
-    today = str(date.today())
+    jst = timezone(timedelta(hours=9))
+    today = datetime.now(jst).strftime("%Y-%m-%d %H:%M")
     print(f"=== 居抜き物件スクレイパー {today} ===")
 
     existing = load_existing_data()

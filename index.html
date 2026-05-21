@@ -74,7 +74,7 @@
 <header>
   <div class="header-left">
     <h1>居抜き物件ダッシュボード <span class="ramen">🍜 ラーメン出店候補</span></h1>
-    <div class="sub">対象エリア：1都3県（東京・神奈川・千葉・埼玉）　|　データ取得日：<span id="gen">2026-05-21</span></div>
+    <div class="sub">対象エリア：1都3県（東京・神奈川・千葉・埼玉）</div>
   </div>
   <button id="refreshBtn" onclick="triggerUpdate()">↻ データ更新</button>
 </header>
@@ -1541,7 +1541,11 @@ function renderStats(){
     <div class="stat accent"><div class="n">${ramen}</div><div class="l">ラーメン出店可（重飲食可）</div></div>
     <div class="stat"><div class="n">${yuryoku}</div><div class="l">◎ 有力候補</div></div>
     <div class="stat" style="min-width:auto"><div class="n" style="font-size:13px;line-height:2.4">${byPref}</div><div class="l">都県別 重飲食可</div></div>
-    <div class="stat"><div class="n" style="font-size:15px">${CRAWL_DATE}</div><div class="l">データ更新日</div></div>
+    <div class="stat" style="min-width:150px">
+      <div class="n" style="font-size:13px;line-height:1.9">${CRAWL_DATE.replace(" ","<br>")}</div>
+      <div class="l">データ更新日時</div>
+      <div id="updateResult" style="font-size:11px;margin-top:4px;font-weight:700"></div>
+    </div>
   `;
 }
 
@@ -1611,7 +1615,27 @@ document.querySelectorAll("th.sortable").forEach(th=>{
 
 renderPrefs();
 renderStats();
+checkUpdateResult();
 render();
+
+function checkUpdateResult(){
+  const prev=localStorage.getItem("inuki_prev_date");
+  const at=localStorage.getItem("inuki_trigger_at");
+  if(!prev||!at) return;
+  localStorage.removeItem("inuki_prev_date");
+  localStorage.removeItem("inuki_trigger_at");
+  if(Date.now()-parseInt(at)>5*60*1000) return;
+  const el=document.getElementById("updateResult");
+  if(!el) return;
+  const t=new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"});
+  if(CRAWL_DATE!==prev){
+    el.textContent=`✓ 成功  ${t}`;
+    el.style.color="var(--good)";
+  } else {
+    el.textContent=`✗ 失敗  ${t}`;
+    el.style.color="#e74c3c";
+  }
+}
 
 async function triggerUpdate(){
   const btn=document.getElementById("refreshBtn");
@@ -1619,7 +1643,9 @@ async function triggerUpdate(){
   btn.textContent="送信中...";
   try{
     const res=await fetch("https://snowy-field-a3c9.ict-share.workers.dev",{method:"POST"});
-    if(res.status===204){
+    if(res.ok){
+      localStorage.setItem("inuki_prev_date",CRAWL_DATE);
+      localStorage.setItem("inuki_trigger_at",Date.now());
       let n=90;
       btn.textContent=`更新中... ${n}秒後にリロード`;
       const t=setInterval(()=>{
