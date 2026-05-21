@@ -1,4 +1,4 @@
-name: 居抜き物件データ毎日更新
+name: inuki-daily-update
 
 on:
   schedule:
