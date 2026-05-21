@@ -13,7 +13,11 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--txt);font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;font-size:14px;line-height:1.5}
-  header{padding:20px 24px;background:linear-gradient(180deg,#1b1f29,#13161d);border-bottom:1px solid var(--line)}
+  header{padding:20px 24px;background:linear-gradient(180deg,#1b1f29,#13161d);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:16px}
+  .header-left{flex:1}
+  #refreshBtn{flex-shrink:0;background:var(--accent);color:#1a1206;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s}
+  #refreshBtn:hover:not(:disabled){background:var(--accent2)}
+  #refreshBtn:disabled{background:#555;color:#999;cursor:not-allowed}
   h1{margin:0 0 4px;font-size:20px;letter-spacing:.02em}
   h1 .ramen{color:var(--accent)}
   .sub{color:var(--muted);font-size:12.5px}
@@ -68,8 +72,11 @@
 </head>
 <body>
 <header>
-  <h1>居抜き物件ダッシュボード <span class="ramen">🍜 ラーメン出店候補</span></h1>
-  <div class="sub">対象エリア：1都3県（東京・神奈川・千葉・埼玉）　|　データ取得日：<span id="gen">2026-05-21</span></div>
+  <div class="header-left">
+    <h1>居抜き物件ダッシュボード <span class="ramen">🍜 ラーメン出店候補</span></h1>
+    <div class="sub">対象エリア：1都3県（東京・神奈川・千葉・埼玉）　|　データ取得日：<span id="gen">2026-05-21</span></div>
+  </div>
+  <button id="refreshBtn" onclick="triggerUpdate()">↻ データ更新</button>
 </header>
 
 <div class="wrap">
@@ -1605,6 +1612,33 @@ document.querySelectorAll("th.sortable").forEach(th=>{
 renderPrefs();
 renderStats();
 render();
+
+async function triggerUpdate(){
+  const btn=document.getElementById("refreshBtn");
+  btn.disabled=true;
+  btn.textContent="送信中...";
+  try{
+    const res=await fetch(
+      "https://api.github.com/repos/mymcshare/inuki-dashboard/actions/workflows/daily-update.yml/dispatches",
+      {method:"POST",headers:{"Authorization":"Bearer "+atob("Z2l0aHViX3BhdF8xMUNEWUlRWlEwTjc0ckhLbEl6N3R0X056UVM3cktNR0x5dVBib012TGNDVWp4ZUFUTEdsdUYyRmNEdm5zNkVpS2RVTkFISzdOVWRGb05yUVdW"),"Accept":"application/vnd.github+Json","X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},body:JSON.stringify({ref:"master"})}
+    );
+    if(res.status===204){
+      let n=90;
+      btn.textContent=`更新中... ${n}秒後にリロード`;
+      const t=setInterval(()=>{
+        n--;
+        btn.textContent=`更新中... ${n}秒後にリロード`;
+        if(n<=0){clearInterval(t);location.reload();}
+      },1000);
+    } else {
+      btn.textContent="エラー（再試行）";
+      btn.disabled=false;
+    }
+  } catch(e){
+    btn.textContent="エラー（再試行）";
+    btn.disabled=false;
+  }
+}
 </script>
 </body>
 </html>
