@@ -77,14 +77,13 @@ SITES = [
         ],
         re.compile(r'/property/view/\d+'),
     ),
-    (
-        "テンポスマート",
-        "https://www.temposmart.jp",
-        [
-            "https://www.temposmart.jp/estates",  # 全国新着（都県はテキストで判定）
-        ],
-        re.compile(r'/estates/\d+'),
-    ),
+    # テンポスマートはCloudFront WAFでボットブロック（requests不可）のため除外
+    # (
+    #     "テンポスマート",
+    #     "https://www.temposmart.jp",
+    #     ["https://www.temposmart.jp/estates"],
+    #     re.compile(r'/estates/\d+'),
+    # ),
     (
         "ぶけなび",
         "https://bukenavi.jp",
