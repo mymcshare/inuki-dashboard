@@ -8023,17 +8023,19 @@ function num(v){ return (v==null)?null:v; }
 
 function renderSummary(list){
   const total=ALL.length;
+  const newToday=ALL.filter(r=>r.isNew).length;
   const juu=ALL.filter(r=>r.juu).length;
   const strong=ALL.filter(r=>r.badge.indexOf("◎")>=0).length;
   const byp={};
   ALL.forEach(r=>{byp[r.pref]=(byp[r.pref]||0)+1});
+  const newHtml='<div class="card" style="border-color:var(--accent);background:rgba(255,138,61,.08)"><div class="n" style="color:var(--accent)">+'+(newToday||0)+'</div><div class="l">前回比 新着件数</div></div>';
   const cards=[
-    ["取得件数（当日新着）",total],
+    ["累計取得件数",total],
     ["重飲食可",juu],
     ["◎有力",strong],
     ["東京",byp["東京"]||0],["神奈川",byp["神奈川"]||0],["千葉",byp["千葉"]||0],["埼玉",byp["埼玉"]||0],
   ];
-  document.getElementById("summary").innerHTML=cards.map(c=>'<div class="card"><div class="n">'+c[1]+'</div><div class="l">'+c[0]+'</div></div>').join("");
+  document.getElementById("summary").innerHTML=newHtml+cards.map(c=>'<div class="card"><div class="n">'+c[1]+'</div><div class="l">'+c[0]+'</div></div>').join("");
 }
 
 function renderPrefChips(){
@@ -8123,9 +8125,10 @@ function updateArrows(){
 
 function init(){
   document.getElementById("headsub").innerHTML=
-    "対象エリア: "+META.areas.join("・")+" ｜ 取得日: "+META.generatedAt+
-    " ｜ 取込期間: "+META.windowStart+"〜"+META.windowEnd+
-    "<br>出典: "+META.sources.join(" / ");
+    '<span style="color:var(--txt);font-weight:700">最終更新: '+META.generatedAt+' JST</span>'+
+    ' ｜ 毎日 23:50 自動更新'+
+    '<br>対象エリア: '+META.areas.join("・")+
+    ' ｜ 出典: '+META.sources.join(" / ");
   renderSummary();
   renderPrefChips();
   ["rentMax","tsuboMin","tsuboMax","kw"].forEach(id=>document.getElementById(id).addEventListener("input",render));
